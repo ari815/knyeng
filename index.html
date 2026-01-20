@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>英単語マスター！チャレンジ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            background-color: #FFF5F7;
+            touch-action: manipulation;
+            user-select: none;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
+        
+        /* Animations */
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .animate-pop { animation: pop 0.3s ease-out; }
+        
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slide-in { animation: slideIn 0.4s ease-out; }
+
+        /* Stamp Style */
+        .stamp {
+            transform: rotate(-15deg);
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .stamp.visible {
+            opacity: 1;
+            transform: rotate(-15deg) scale(1);
+        }
+    </style>
+</head>
+<body class="text-slate-700 pb-10 bg-slate-50 min-h-screen">
+
+    <canvas id="confetti-canvas" class="fixed top-0 left-0 w-full h-full pointer-events-none z-50"></canvas>
+
+    <header class="bg-indigo-500 text-white p-3 sticky top-0 z-40 shadow-md">
+        <div class="max-w-4xl mx-auto flex flex-col gap-2">
+            <div class="flex justify-between items-center">
+                <h1 class="text-xl font-extrabold flex items-center gap-2 drop-shadow-md">
+                    <span class="text-2xl">🎓</span> 英単語マスター
+                </h1>
+                <button onclick="resetData()" class="bg-white/20 hover:bg-white/40 text-white border border-white/50 rounded-full px-3 py-1 text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                    <span>🗑️</span> リセット
+                </button>
+            </div>
+            
+            <div class="flex gap-2 text-sm">
+                <div class="flex items-center bg-white/20 rounded px-3 py-2 flex-grow">
+                    <span class="font-bold mr-2 whitespace-nowrap">名前</span>
+                    <input type="text" id="name" class="w-full font-bold bg-transparent outline-none border-b border-white placeholder-indigo-200 text-white" placeholder="名前を入力">
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto p-4 space-y-6">
+        
+        <div class="bg-white rounded-3xl p-6 shadow-md border-4 border-indigo-100 text-center relative overflow-hidden">
+            <div class="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
+                <span class="text-9xl">📚</span>
+            </div>
+            <h2 class="text-lg font-bold text-indigo-600 mb-2 relative z-10">めざせ全セット合格！</h2>
+            <p class="text-sm text-slate-500 font-bold relative z-10">8割以上正解で合格スタンプゲット！</p>
+        </div>
+
+        <div id="course-list" class="space-y-4">
+            </div>
+
+    </main>
+
+    <div id="quiz-modal" class="fixed inset-0 bg-indigo-900/90 z-[100] hidden flex flex-col items-center justify-center p-4">
+        <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] relative">
+            
+            <div class="h-2 bg-slate-100 w-full">
+                <div id="progress-bar" class="h-full bg-indigo-500 transition-all duration-300" style="width: 0%"></div>
+            </div>
+
+            <div class="p-6 flex-1 overflow-y-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <span class="bg-indigo-100 text-indigo-600 px-3 py-1 rounded-full text-xs font-bold" id="quiz-set-name">SET A</span>
+                    <span class="text-slate-400 font-bold text-sm">Q. <span id="q-current">1</span> / 10</span>
+                </div>
+
+                <div class="min-h-[120px] flex items-center justify-center mb-8">
+                    <h3 id="question-text" class="text-2xl font-extrabold text-center text-slate-700 leading-relaxed animate-slide-in">
+                        </h3>
+                </div>
+
+                <div class="space-y-3" id="options-container">
+                    </div>
+            </div>
+
+            <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-center">
+                <button onclick="quitQuiz()" class="text-slate-400 font-bold text-sm hover:text-slate-600">中断して戻る</button>
+            </div>
+
+            <div id="feedback-overlay" class="absolute inset-0 flex items-center justify-center bg-white/80 hidden z-10">
+                <div id="feedback-icon" class="text-9xl font-bold drop-shadow-lg scale-0 transition-transform duration-300"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="result-modal" class="fixed inset-0 bg-black/60 z-[110] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-8 w-full max-w-sm animate-pop border-4 border-indigo-200 shadow-2xl text-center relative overflow-hidden">
+            <div class="mb-4">
+                <span id="result-emoji" class="text-6xl"></span>
+            </div>
+            <h3 id="result-title" class="text-2xl font-extrabold text-indigo-600 mb-2"></h3>
+            
+            <div class="bg-indigo-50 rounded-xl p-4 mb-6 border border-indigo-100">
+                <div class="text-sm text-slate-500 font-bold mb-1">スコア</div>
+                <div class="text-4xl font-extrabold text-slate-700">
+                    <span id="score-num" class="text-indigo-600"></span><span class="text-xl text-slate-400">/10</span>
+                </div>
+            </div>
+
+            <p id="result-msg" class="text-sm font-bold text-slate-600 mb-6 leading-relaxed"></p>
+
+            <button onclick="closeResultModal()" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95">
+                OK
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- 📊 Data: Words, Meanings, Sentences ---
+        // 3 Sets of 10 words each
+        const WORD_DATA = [
+            // SET A
+            [
+                { w: "engineering", m: "工学", s: "He is studying ________ at university." },
+                { w: "graduation", m: "卒業", s: "The ________ ceremony was very moving." },
+                { w: "electronics", m: "電子機器", s: "I am interested in consumer ________." },
+                { w: "acquired", m: "習得した、得た", s: "She ________ new skills quickly." },
+                { w: "depressed", m: "落ち込んだ", s: "He felt ________ after hearing the news." },
+                { w: "astonishing", m: "驚くべき", s: "The view from the top was ________." },
+                { w: "muscle", m: "筋肉", s: "Regular exercise builds ________." },
+                { w: "efficiently", m: "効率的に", s: "We need to work more ________." },
+                { w: "electrical", m: "電気の", s: "My father is an ________ engineer." },
+                { w: "appliances", m: "器具、家電", s: "This store sells kitchen ________." }
+            ],
+            // SET B
+            [
+                { w: "imitate", m: "真似する", s: "Parrots can ________ human speech." },
+                { w: "inspiration", m: "ひらめき", s: "She got ________ from nature." },
+                { w: "various", m: "さまざまな", s: "There are ________ reasons for this." },
+                { w: "consume", m: "消費する", s: "Big cars ________ a lot of gas." },
+                { w: "confident", m: "自信がある", s: "I am ________ about the test." },
+                { w: "additional", m: "追加の", s: "There is an ________ charge." },
+                { w: "invent", m: "発明する", s: "Did you ________ this machine?" },
+                { w: "compression", m: "圧縮", s: "Data ________ saves disk space." },
+                { w: "vacuum", m: "真空、掃除機", s: "I used a ________ cleaner today." },
+                { w: "contribute", m: "貢献する、つながる", s: "I want to ________ to society." }
+            ],
+            // SET C
+            [
+                { w: "efficiency", m: "効率", s: "We improved the ________ of the engine." },
+                { w: "flap", m: "パタパタ動かす", s: "Birds ________ their wings to fly." },
+                { w: "trend", m: "傾向、流行", s: "This fashion is a new ________." },
+                { w: "development", m: "開発、発展", s: "Software ________ is complex." },
+                { w: "inventor", m: "発明家", s: "Edison is a famous ________." },
+                { w: "achievement", m: "達成、業績", s: "Winning the prize was a great ________." },
+                { w: "analyze", m: "分析する", s: "Let's ________ the data carefully." },
+                { w: "observe", m: "観察する", s: "Scientists ________ the stars." },
+                { w: "rubber", m: "ゴム", s: "Tires are made of ________." },
+                { w: "imitation", m: "模倣、真似", s: "This bag is a cheap ________." }
+            ]
+        ];
+
+        const SET_NAMES = ["SET A", "SET B", "SET C"];
+        const SET_COLORS = ["pink", "blue", "green"]; // Colors for UI differentiation
+
+        // --- 🎵 Audio Manager ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const Sound = {
+            playTone: (freq, type, duration) => {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            },
+            click: () => Sound.playTone(600, 'sine', 0.1),
+            correct: () => { Sound.playTone(880, 'sine', 0.1); setTimeout(() => Sound.playTone(1760, 'sine', 0.2), 100); },
+            wrong: () => { Sound.playTone(200, 'sawtooth', 0.3); },
+            fanfare: () => {
+                const now = audioCtx.currentTime;
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => setTimeout(() => Sound.playTone(freq, 'triangle', 0.8), i * 150));
+            }
+        };
+
+        // --- 🎉 Visual Effects (Confetti) ---
+        class Confetti {
+            constructor() {
+                this.canvas = document.getElementById('confetti-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+                this.particles = [];
+                this.isAnimating = false;
+            }
+            resize() { this.canvas.width = window.innerWidth; this.canvas.height = window.innerHeight; }
+            createParticles() {
+                const colors = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#FF9F43', '#54A0FF'];
+                for (let i = 0; i < 150; i++) {
+                    this.particles.push({
+                        x: window.innerWidth / 2, y: window.innerHeight / 2,
+                        vx: (Math.random() - 0.5) * 15, vy: (Math.random() - 0.5) * 15 - 8,
+                        size: Math.random() * 8 + 4, color: colors[Math.floor(Math.random() * colors.length)],
+                        rotation: Math.random() * 360, dr: (Math.random() - 0.5) * 10
+                    });
+                }
+            }
+            animate() {
+                if (this.particles.length === 0) { this.isAnimating = false; this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height); return; }
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.particles.forEach((p, index) => {
+                    p.x += p.vx; p.y += p.vy; p.vy += 0.3; p.rotation += p.dr;
+                    this.ctx.save(); this.ctx.translate(p.x, p.y); this.ctx.rotate(p.rotation * Math.PI / 180);
+                    this.ctx.fillStyle = p.color; this.ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                    this.ctx.restore();
+                    if (p.y > this.canvas.height) this.particles.splice(index, 1);
+                });
+                requestAnimationFrame(() => this.animate());
+            }
+            start() { this.createParticles(); if (!this.isAnimating) { this.isAnimating = true; this.animate(); } }
+        }
+        const confettiEffect = new Confetti();
+
+        // --- 🧠 App Logic ---
+        let appData = {
+            name: '',
+            passed: [false, false, false] // Status for Set A, B, C
+        };
+
+        let currentSetIndex = 0;
+        let currentQuestions = [];
+        let currentQIndex = 0;
+        let correctCount = 0;
+        let isAnswering = false;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+            renderCourseList();
+            document.getElementById('name').addEventListener('input', (e) => {
+                appData.name = e.target.value;
+                saveData();
+            });
+        });
+
+        function loadData() {
+            const saved = localStorage.getItem('vocab_quiz_v1');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    appData = { ...appData, ...parsed };
+                    document.getElementById('name').value = appData.name || '';
+                } catch(e) { console.error(e); }
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('vocab_quiz_v1', JSON.stringify(appData));
+        }
+
+        function resetData() {
+            if(confirm("データをリセットしますか？")) {
+                localStorage.removeItem('vocab_quiz_v1');
+                location.reload();
+            }
+        }
+
+        function renderCourseList() {
+            const container = document.getElementById('course-list');
+            container.innerHTML = '';
+
+            SET_NAMES.forEach((name, idx) => {
+                const isPassed = appData.passed[idx];
+                const color = SET_COLORS[idx];
+                
+                // Color mapping for classes
+                const colors = {
+                    pink: 'border-pink-200 bg-pink-50 text-pink-600',
+                    blue: 'border-sky-200 bg-sky-50 text-sky-600',
+                    green: 'border-teal-200 bg-teal-50 text-teal-600'
+                };
+                const btnColors = {
+                    pink: 'bg-pink-500 hover:bg-pink-600',
+                    blue: 'bg-sky-500 hover:bg-sky-600',
+                    green: 'bg-teal-500 hover:bg-teal-600'
+                };
+
+                const html = `
+                <div class="rounded-2xl border-4 ${colors[color]} p-4 relative shadow-sm transition transform hover:scale-[1.02]">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-xl font-extrabold flex items-center gap-2">
+                            ${name}
+                            ${isPassed ? '<span class="text-xs bg-yellow-400 text-white px-2 py-1 rounded-full shadow-sm">合格！</span>' : ''}
+                        </h3>
+                        <div class="stamp absolute right-4 top-2 pointer-events-none ${isPassed ? 'visible' : ''}">
+                            <div class="w-16 h-16 rounded-full border-4 border-red-500 text-red-500 flex items-center justify-center font-black text-xs opacity-80" style="border-style: double;">
+                                大変<br>よく<br>できました
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-xs font-bold opacity-70 mb-4">全10問 / 8問以上で合格</p>
+                    <button onclick="startQuiz(${idx})" class="w-full ${btnColors[color]} text-white font-bold py-3 rounded-xl shadow-md transition active:scale-95 flex items-center justify-center gap-2">
+                        <span>📝</span> チャレンジする
+                    </button>
+                </div>
+                `;
+                container.innerHTML += html;
+            });
+        }
+
+        // --- Quiz Execution ---
+
+        function startQuiz(setIndex) {
+            Sound.click();
+            currentSetIndex = setIndex;
+            
+            // Generate Questions
+            // For each word in the set, randomly decide if it's Type 1 (Meaning -> Word) or Type 2 (Sentence -> Word)
+            const sourceWords = WORD_DATA[setIndex];
+            currentQuestions = sourceWords.map(item => {
+                const type = Math.random() < 0.5 ? 1 : 2; // 50% chance
+                
+                // Generate distractors
+                const otherWords = sourceWords.filter(w => w.w !== item.w);
+                // Shuffle others and pick 2
+                const shuffledOthers = otherWords.sort(() => 0.5 - Math.random()).slice(0, 2);
+                const choices = [item, ...shuffledOthers].sort(() => 0.5 - Math.random()); // Mix correct answer
+
+                return {
+                    target: item,
+                    type: type,
+                    choices: choices
+                };
+            });
+
+            // Shuffle question order
+            currentQuestions.sort(() => 0.5 - Math.random());
+
+            currentQIndex = 0;
+            correctCount = 0;
+            
+            document.getElementById('quiz-set-name').innerText = SET_NAMES[setIndex];
+            document.getElementById('quiz-modal').classList.remove('hidden');
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            if (currentQIndex >= currentQuestions.length) {
+                finishQuiz();
+                return;
+            }
+
+            const q = currentQuestions[currentQIndex];
+            document.getElementById('q-current').innerText = currentQIndex + 1;
+            document.getElementById('progress-bar').style.width = `${(currentQIndex / currentQuestions.length) * 100}%`;
+            
+            const qTextEl = document.getElementById('question-text');
+            const optsContainer = document.getElementById('options-container');
+            optsContainer.innerHTML = '';
+
+            // Reset Animation
+            qTextEl.classList.remove('animate-slide-in');
+            void qTextEl.offsetWidth; // Trigger reflow
+            qTextEl.classList.add('animate-slide-in');
+
+            if (q.type === 1) {
+                // Meaning -> Word
+                qTextEl.innerHTML = `<span class="text-indigo-500 text-sm block mb-2 font-bold">この意味の英単語は？</span>${q.target.m}`;
+            } else {
+                // Sentence -> Word
+                // Replace target word with blank
+                // Create a regex to replace the word (case insensitive)
+                const blankedSentence = q.target.s.replace('________', '<span class="border-b-4 border-indigo-300 px-2 text-indigo-500 inline-block min-w-[80px]">?</span>');
+                qTextEl.innerHTML = `<span class="text-indigo-500 text-sm block mb-2 font-bold">空欄に入る単語は？</span><span class="text-lg">${blankedSentence}</span>`;
+            }
+
+            q.choices.forEach(choice => {
+                const btn = document.createElement('button');
+                btn.className = "w-full bg-white border-2 border-slate-200 text-slate-600 font-bold py-4 rounded-xl hover:bg-indigo-50 hover:border-indigo-300 transition text-lg shadow-sm active:scale-95";
+                btn.innerText = choice.w;
+                btn.onclick = () => checkAnswer(choice.w, q.target.w);
+                optsContainer.appendChild(btn);
+            });
+            
+            isAnswering = false;
+        }
+
+        function checkAnswer(selectedWord, correctWord) {
+            if (isAnswering) return;
+            isAnswering = true;
+
+            const isCorrect = selectedWord === correctWord;
+            if (isCorrect) correctCount++;
+
+            // Show Feedback
+            const feedbackOverlay = document.getElementById('feedback-overlay');
+            const feedbackIcon = document.getElementById('feedback-icon');
+            
+            feedbackOverlay.classList.remove('hidden');
+            feedbackIcon.innerText = isCorrect ? '⭕' : '❌';
+            feedbackIcon.className = `text-9xl font-bold drop-shadow-lg scale-100 transition-transform duration-300 ${isCorrect ? 'text-red-500' : 'text-blue-500'}`;
+            
+            if (isCorrect) Sound.correct();
+            else Sound.wrong();
+
+            setTimeout(() => {
+                feedbackIcon.classList.remove('scale-100');
+                feedbackIcon.classList.add('scale-0');
+                feedbackOverlay.classList.add('hidden');
+                
+                currentQIndex++;
+                renderQuestion();
+            }, 800);
+        }
+
+        function quitQuiz() {
+            document.getElementById('quiz-modal').classList.add('hidden');
+        }
+
+        function finishQuiz() {
+            document.getElementById('quiz-modal').classList.add('hidden');
+            
+            const percentage = (correctCount / 10) * 100;
+            const passed = percentage >= 80;
+            
+            const resultModal = document.getElementById('result-modal');
+            const resultEmoji = document.getElementById('result-emoji');
+            const resultTitle = document.getElementById('result-title');
+            const resultMsg = document.getElementById('result-msg');
+            const scoreNum = document.getElementById('score-num');
+
+            scoreNum.innerText = correctCount;
+
+            if (passed) {
+                resultEmoji.innerText = "🎊";
+                resultTitle.innerText = "合格！";
+                resultTitle.className = "text-3xl font-extrabold text-orange-500 mb-2";
+                resultMsg.innerText = "すばらしい！\nこのちょうしでがんばろう！";
+                Sound.fanfare();
+                confettiEffect.start();
+                
+                // Save Result
+                appData.passed[currentSetIndex] = true;
+                saveData();
+                renderCourseList();
+
+            } else {
+                resultEmoji.innerText = "💪";
+                resultTitle.innerText = "おしい！";
+                resultTitle.className = "text-3xl font-extrabold text-slate-500 mb-2";
+                resultMsg.innerText = "8割以上で合格だよ。\nもういちどチャレンジしよう！";
+            }
+
+            resultModal.classList.remove('hidden');
+        }
+
+        function closeResultModal() {
+            document.getElementById('result-modal').classList.add('hidden');
+        }
+
+    </script>
+</body>
+</html>
