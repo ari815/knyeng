@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Training: Lesson 16</title>
+    <style>
+        :root {
+            --text-main: #333;
+            --primary-color: #4a90e2;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --bg-color: #f4f7f9;
+            --card-bg: #ffffff;
+            --hint-color: #f39c12;
+            --badge-color: #e91e63;
+            --show-ans-color: #673ab7;
+        }
+
+        body {
+            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 850px;
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            padding: 35px;
+            min-height: 550px;
+            position: relative;
+        }
+
+        /* --- Menu Screen --- */
+        #menu-screen { text-align: center; }
+        .menu-title { font-size: 1.8rem; margin-bottom: 30px; color: #444; }
+        .menu-list { display: grid; gap: 15px; }
+        .menu-item {
+            padding: 20px; border: 2px solid #eee; border-radius: 15px;
+            cursor: pointer; transition: 0.2s; background: #fff; text-align: left;
+            position: relative; overflow: hidden;
+        }
+        .menu-item:hover { border-color: var(--primary-color); background-color: #f0f7ff; }
+        .menu-item h3 { margin: 0 0 5px 0; color: var(--primary-color); }
+
+        .gj-badge {
+            position: absolute; top: 10px; right: 10px;
+            background: var(--badge-color); color: white;
+            padding: 5px 12px; border-radius: 20px; font-weight: bold;
+            font-size: 0.8rem; transform: rotate(10deg);
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .reset-container { margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px; }
+        .btn-clear-storage {
+            background: none; border: 1px solid #ccc; color: #999;
+            padding: 8px 15px; border-radius: 5px; cursor: pointer; font-size: 0.85rem;
+        }
+
+        /* --- Game Screen --- */
+        #game-screen { display: none; flex-direction: column; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .back-btn { background: #999; color: white; border: none; padding: 8px 15px; border-radius: 20px; cursor: pointer; }
+        .progress-bar { flex-grow: 1; height: 8px; background: #eee; border-radius: 4px; margin: 0 15px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--success-color); width: 0%; transition: width 0.3s; }
+
+        .instruction { font-size: 1rem; font-weight: bold; margin-bottom: 10px; color: var(--primary-color); }
+        .jp-text { font-size: 1.2rem; margin-bottom: 20px; background: #f0f4f8; padding: 15px; border-radius: 10px; line-height: 1.5; }
+        
+        .interaction-area { font-size: 1.3rem; line-height: 2.8rem; margin-bottom: 20px; min-height: 80px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; border: 2px dashed #d0d7de; padding: 15px; border-radius: 12px; justify-content: center;}
+        
+        input[type="text"].gap-input {
+            font-size: 1.2rem; border: none; border-bottom: 2px solid #999;
+            outline: none; text-align: center; color: var(--primary-color); font-weight: bold; background: transparent;
+        }
+
+        .reorder-slot { color: #aaa; margin: 0 4px; border-bottom: 2px solid #ddd; min-width: 60px; text-align: center; display: inline-block; cursor: pointer; }
+        .reorder-slot.filled { color: var(--primary-color); font-weight: bold; border-bottom-color: var(--primary-color); }
+        .chip-container { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 10px; }
+        .word-chip {
+            padding: 8px 16px; background: #fff; border: 2px solid #ddd; border-radius: 25px;
+            cursor: pointer; user-select: none; transition: 0.1s; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .word-chip.used { opacity: 0.2; pointer-events: none; }
+
+        .hint-box { 
+            display: none; background: #fffde7; border: 1px solid #fbc02d; padding: 15px; 
+            border-radius: 8px; margin-bottom: 15px; font-size: 1rem; color: #555;
+            text-align: center; animation: fadeIn 0.3s; line-height: 1.6;
+        }
+        .word-count-badge { display: block; font-weight: bold; color: var(--error-color); margin-bottom: 5px; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .feedback { height: 30px; text-align: center; font-weight: bold; font-size: 1.2rem; margin-bottom: 15px; }
+        .controls { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+        .btn-action { padding: 12px 25px; font-size: 1.1rem; border: none; border-radius: 30px; cursor: pointer; font-weight: bold; }
+        .btn-check { background: var(--text-main); color: white; }
+        .btn-next { background: var(--success-color); color: white; display: none; }
+        .btn-reset { background: #90A4AE; color: white; }
+        .btn-hint { background: var(--hint-color); color: white; }
+        .btn-answer { background: var(--show-ans-color); color: white; display: none; }
+
+        /* --- Paper Confetti --- */
+        #confetti-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; }
+        .confetti-piece { position: absolute; width: 10px; height: 10px; animation: explode ease-out forwards; }
+        @keyframes explode {
+            0% { opacity: 1; transform: translate(0, 0) scale(0.5) rotate(0deg); }
+            100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(1.2) rotate(var(--rot)); }
+        }
+
+        #result-screen { display: none; text-align: center; padding-top: 50px; }
+    </style>
+</head>
+<body>
+
+<div id="confetti-container"></div>
+
+<div class="container">
+    <div id="menu-screen">
+        <h1 class="menu-title">English Drill: Lesson 16</h1>
+        <div class="menu-list">
+            <div class="menu-item" onclick="startExercise(1)">
+                <div id="badge-1" class="gj-badge">Good Job! 🌟</div>
+                <h3>大問 １：時制の一致</h3>
+                <p>適切な語形に変えて空欄を埋めましょう。</p>
+            </div>
+            <div class="menu-item" onclick="startExercise(2)">
+                <div id="badge-2" class="gj-badge">Good Job! 🌟</div>
+                <h3>大問 ２：直接話法・間接話法</h3>
+                <p>文脈に合わせて代名詞や時制を調整します。</p>
+            </div>
+            <div class="menu-item" onclick="startExercise(3)">
+                <div id="badge-3" class="gj-badge">Good Job! 🌟</div>
+                <h3>大問 ３：同意文完成</h3>
+                <p>話法転換のルールを空欄に適用してください。</p>
+            </div>
+            <div class="menu-item" onclick="startExercise(4)">
+                <div id="badge-4" class="gj-badge">Good Job! 🌟</div>
+                <h3>大問 ４：和文英訳（並べかえ）</h3>
+                <p>日本語に合うように語句を正しく配置しましょう。</p>
+            </div>
+        </div>
+        
+        <div class="reset-container">
+            <button class="btn-clear-storage" onclick="clearProgress()">
+                これまでの学習記録（Cookie）を削除する
+            </button>
+        </div>
+    </div>
+
+    <div id="game-screen">
+        <div class="header">
+            <button class="back-btn" onclick="goToMenu()">Menu</button>
+            <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
+            <div id="counter">1 / 1</div>
+        </div>
+
+        <div class="question-box">
+            <div id="instruction" class="instruction"></div>
+            <div id="jp-text" class="jp-text"></div>
+            <div id="hint-box" class="hint-box"></div>
+            <div id="interaction-area" class="interaction-area"></div>
+            <div id="chip-area" class="chip-container"></div>
+        </div>
+
+        <div id="feedback" class="feedback"></div>
+        <div class="controls">
+            <button id="hint-btn" class="btn-action btn-hint" onclick="toggleHint()">Hint</button>
+            <button id="reset-btn" class="btn-action btn-reset" onclick="resetCurrent()" style="display:none;">Reset</button>
+            <button id="check-btn" class="btn-action btn-check" onclick="checkAnswer()">Check</button>
+            <button id="answer-btn" class="btn-action btn-answer" onclick="showAnswer()">解答を表示</button>
+            <button id="next-btn" class="btn-action btn-next" onclick="nextQuestion()">Next &raquo;</button>
+        </div>
+    </div>
+
+    <div id="result-screen">
+        <h2 id="result-title">Section Clear!</h2>
+        <p id="final-score"></p>
+        <button class="btn-action btn-check" onclick="goToMenu()">Back to Menu</button>
+    </div>
+</div>
+
+<script>
+    const questions = {
+        1: [
+            { ja: "彼は外科医だと思った。", en: ["I", "thought", "that", "he", "{was}", "a", "surgeon."], hint: "主節が過去(thought)なので、that節内も過去形にします。" },
+            { ja: "アヤが忙しかったことを知っていた。", en: ["We", "knew", "that", "Aya", "{had}", "{been}", "busy."], hint: "「知っていた(knew)」以前の「忙しかった」ことなので、過去完了形を使います。" },
+            { ja: "彼女は試合に勝つだろうと言った。", en: ["Osamu", "said", "she", "{would}", "{win}", "the", "game."], hint: "saidに合わせ、willを過去形のwouldに変えます。" }
+        ],
+        2: [
+            { ja: "姉は「私は留学したい」と言いました。（直接話法）", en: ["My", "sister", "said,", "\"I", "{want}", "to", "study", "abroad.\""], hint: "本人の言葉をそのまま再現するので、現在の気持ちは現在形です。" },
+            { ja: "姉は留学したいと言いました。（間接話法）", en: ["My", "sister", "said", "that", "{she}", "{wanted}", "to", "study", "abroad."], hint: "話者の視点に変えるため、I→she、want→wanted(時制の一致)にします。" },
+            { ja: "父は私に「歯を磨きなさい」と言いました。（直接話法）", en: ["My", "father", "{said}", "to", "me,", "\"Brush", "your", "teeth.\""], hint: "命令文をそのまま引用します。" },
+            { ja: "父は私に歯を磨くように言いました。（間接話法）", en: ["My", "father", "{told}", "me", "{to}", "{brush}", "my", "teeth."], hint: "tell A to doの形を使い、代名詞yourをmyに変えます。" }
+        ],
+        3: [
+            { ja: "ソータは私に「何をしているの？」と言った。 → ソータは私が何をしているか尋ねた。", en: ["Sota", "{asked}", "me", "{what}", "I", "{was}", "doing."], hint: "疑問文の話法転換。疑問詞の後は「主語＋動詞」の順（間接疑問）になります。" },
+            { ja: "係員は私たちに「美術館では静かにしてください」と言った。 → 係員は私たちに静かにするように求めた。", en: ["The", "clerk", "{asked}", "us", "{to}", "{be}", "quiet", "in", "the", "museum."], hint: "依頼(Please...)の間接話法は ask A to do で表します。" },
+            { ja: "いとこに「仕事に満足している？」と言った。 → いとこに仕事に満足しているか尋ねた。", en: ["I", "{asked}", "my", "cousin", "{if}", "he", "{was}", "satisfied", "with", "{his}", "work."], hint: "Yes/No疑問文は if/whether を使い、代名詞や時制を調整します。" }
+        ],
+        4: [
+            { ja: "リナは上着のボタンがとれていたことに気づいた。", fixed_pre: "Rina", fixed_post: "her jacket.", options: ["noticed", "had", "a", "button", "come", "off"], answer: ["noticed", "a", "button", "had", "come", "off"], hint: "「気づいた(noticed)」以前の出来事なので、過去完了を使います。" },
+            { ja: "ヒロトは先生に体育館を使ってよいか尋ねた。", fixed_pre: "Hiroto", fixed_post: "the gym.", options: ["asked", "his", "teacher", "if", "he", "could", "use"], answer: ["asked", "his", "teacher", "if", "he", "could", "use"], hint: "asked + 人 + if + S + V ... の形。canをcouldに時制一致させます。" },
+            { ja: "警官が私に、そこに駐輪しないようにと言った。", fixed_pre: "The police officer", fixed_post: "there.", options: ["told", "me", "not", "to", "park", "my", "bike"], answer: ["told", "me", "not", "to", "park", "my", "bike"], hint: "否定の命令文は tell A not to do で表現します。" },
+            { ja: "母は、私にいつ家を出発するか尋ねました。", fixed_pre: "My mother", fixed_post: "", options: ["asked", "me", "when", "I", "would", "leave", "home"], answer: ["asked", "me", "when", "I", "would", "leave", "home"], hint: "when + S + V の順。willをwouldにするのを忘れずに。" }
+        ]
+    };
+
+    let currentSection = 1;
+    let currentIndex = 0;
+    let userSort = [];
+    let usedAnswerBtn = false;
+    let progress = JSON.parse(localStorage.getItem('lesson16_progress')) || {1: false, 2: false, 3: false, 4: false};
+
+    window.onload = updateBadges;
+
+    function startExercise(section) {
+        currentSection = section;
+        currentIndex = 0;
+        usedAnswerBtn = false;
+        document.getElementById('menu-screen').style.display = 'none';
+        document.getElementById('game-screen').style.display = 'flex';
+        loadQuestion();
+    }
+
+    function goToMenu() {
+        document.getElementById('menu-screen').style.display = 'block';
+        document.getElementById('game-screen').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'none';
+        updateBadges();
+    }
+
+    function updateBadges() {
+        for (let i = 1; i <= 4; i++) {
+            const badge = document.getElementById(`badge-${i}`);
+            if(badge) badge.style.display = progress[i] ? 'block' : 'none';
+        }
+    }
+
+    function clearProgress() {
+        if (confirm("これまでの進捗を削除してよろしいですか？")) {
+            progress = {1: false, 2: false, 3: false, 4: false};
+            localStorage.removeItem('lesson16_progress');
+            updateBadges();
+        }
+    }
+
+    function loadQuestion() {
+        const qData = questions[currentSection][currentIndex];
+        const area = document.getElementById('interaction-area');
+        const chipArea = document.getElementById('chip-area');
+        const feedback = document.getElementById('feedback');
+        const hintBox = document.getElementById('hint-box');
+        
+        area.innerHTML = '';
+        chipArea.innerHTML = '';
+        feedback.textContent = '';
+        hintBox.style.display = 'none';
+        
+        document.getElementById('check-btn').style.display = 'block';
+        document.getElementById('next-btn').style.display = 'none';
+        document.getElementById('reset-btn').style.display = (currentSection === 4) ? 'block' : 'none';
+        document.getElementById('answer-btn').style.display = 'block';
+        document.getElementById('hint-btn').style.display = (qData.hint) ? 'block' : 'none';
+        
+        document.getElementById('jp-text').textContent = qData.ja;
+        document.getElementById('counter').textContent = `${currentIndex + 1} / ${questions[currentSection].length}`;
+        document.getElementById('progress-fill').style.width = `${((currentIndex) / questions[currentSection].length) * 100}%`;
+
+        if (currentSection === 1 || currentSection === 2 || currentSection === 3) {
+            document.getElementById('instruction').textContent = "（　）を適切な語、または語形で埋めなさい。";
+            qData.en.forEach((word) => {
+                if (word.startsWith('{')) {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.className = 'gap-input';
+                    input.style.width = (word.length * 12) + 'px';
+                    input.dataset.answer = word.replace(/[{}]/g, '');
+                    area.appendChild(input);
+                } else {
+                    const span = document.createElement('span');
+                    span.textContent = word + ' ';
+                    area.appendChild(span);
+                }
+            });
+        } else if (currentSection === 4) {
+            document.getElementById('instruction').textContent = "語句を並べかえなさい。";
+            userSort = [];
+            if(qData.fixed_pre) area.innerHTML += `<span>${qData.fixed_pre}&nbsp;</span>`;
+            qData.options.forEach((_, i) => {
+                const slot = document.createElement('span');
+                slot.className = 'reorder-slot';
+                slot.id = `slot-${i}`;
+                slot.textContent = '(　)';
+                slot.onclick = () => removeLastWord();
+                area.appendChild(slot);
+            });
+            if(qData.fixed_post) area.innerHTML += `<span>&nbsp;${qData.fixed_post}</span>`;
+            const shuffled = [...qData.options].sort(() => Math.random() - 0.5);
+            shuffled.forEach((word, i) => {
+                const chip = document.createElement('div');
+                chip.className = 'word-chip';
+                chip.id = `chip-${i}`;
+                chip.textContent = word;
+                chip.onclick = () => addWord(word, chip.id);
+                chipArea.appendChild(chip);
+            });
+        }
+    }
+
+    function toggleHint() {
+        const hintBox = document.getElementById('hint-box');
+        const qData = questions[currentSection][currentIndex];
+        if (hintBox.style.display === 'none') {
+            hintBox.textContent = "💡 " + qData.hint;
+            hintBox.style.display = 'block';
+        } else {
+            hintBox.style.display = 'none';
+        }
+    }
+
+    function showAnswer() {
+        const qData = questions[currentSection][currentIndex];
+        usedAnswerBtn = true;
+        
+        if (currentSection === 4) {
+            userSort = qData.answer.map((w, i) => ({word: w, chipId: `dummy-${i}`}));
+            updateSlots();
+        } else {
+            const inputs = document.querySelectorAll('.gap-input');
+            inputs.forEach(i => i.value = i.dataset.answer);
+        }
+
+        const feedback = document.getElementById('feedback');
+        feedback.textContent = "Answer Shown. 正解を確認してください。";
+        feedback.style.color = "var(--show-ans-color)";
+        
+        document.getElementById('check-btn').style.display = 'none';
+        document.getElementById('answer-btn').style.display = 'none';
+        document.getElementById('hint-btn').style.display = 'none';
+        document.getElementById('next-btn').style.display = 'block';
+    }
+
+    function addWord(word, chipId) {
+        if (userSort.length < questions[currentSection][currentIndex].options.length) {
+            userSort.push({word: word, chipId: chipId});
+            const chip = document.getElementById(chipId);
+            if(chip) chip.classList.add('used');
+            updateSlots();
+        }
+    }
+
+    function removeLastWord() {
+        if (userSort.length > 0) {
+            const last = userSort.pop();
+            const chip = document.getElementById(last.chipId);
+            if(chip) chip.classList.remove('used');
+            updateSlots();
+        }
+    }
+
+    function resetCurrent() {
+        userSort = [];
+        document.querySelectorAll('.word-chip').forEach(c => c.classList.remove('used'));
+        updateSlots();
+    }
+
+    function updateSlots() {
+        const max = questions[currentSection][currentIndex].options.length;
+        for(let i=0; i<max; i++) {
+            const slot = document.getElementById(`slot-${i}`);
+            if(userSort[i]) {
+                slot.textContent = userSort[i].word;
+                slot.classList.add('filled');
+            } else {
+                slot.textContent = '(　)';
+                slot.classList.remove('filled');
+            }
+        }
+    }
+
+    function checkAnswer() {
+        const qData = questions[currentSection][currentIndex];
+        let isCorrect = false;
+
+        const normalize = (s) => s.trim().toLowerCase().replace(/[.!?,;]$/, "").replace(/\s+/g, " ");
+
+        if (currentSection <= 3) {
+            const inputs = document.querySelectorAll('.gap-input');
+            isCorrect = Array.from(inputs).every(i => normalize(i.value) === normalize(i.dataset.answer));
+        } else if (currentSection === 4) {
+            isCorrect = normalize(userSort.map(item => item.word).join(' ')) === normalize(qData.answer.join(' '));
+        }
+
+        const feedback = document.getElementById('feedback');
+        if (isCorrect) {
+            feedback.textContent = "Great! 正解です！";
+            feedback.style.color = "var(--success-color)";
+            fireConfetti();
+            document.getElementById('check-btn').style.display = 'none';
+            document.getElementById('answer-btn').style.display = 'none';
+            document.getElementById('next-btn').style.display = 'block';
+            document.getElementById('hint-btn').style.display = 'none';
+        } else {
+            feedback.textContent = "Try again... もう一度！";
+            feedback.style.color = "var(--error-color)";
+        }
+    }
+
+    function nextQuestion() {
+        currentIndex++;
+        if (currentIndex < questions[currentSection].length) {
+            loadQuestion();
+        } else {
+            document.getElementById('game-screen').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'block';
+            
+            if (!usedAnswerBtn) {
+                progress[currentSection] = true;
+                localStorage.setItem('lesson16_progress', JSON.stringify(progress));
+                document.getElementById('result-title').textContent = "Section Clear! 🌟";
+                document.getElementById('final-score').textContent = "自力で全問クリア！この調子です。";
+            } else {
+                document.getElementById('result-title').textContent = "Practice Finished";
+                document.getElementById('final-score').textContent = "解答を見ずにクリアできるよう再挑戦しましょう。";
+            }
+        }
+    }
+
+    function fireConfetti() {
+        const container = document.getElementById('confetti-container');
+        const colors = ['#f44336', '#2196f3', '#ffeb3b', '#4caf50', '#ff9800'];
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+        for (let i = 0; i < 60; i++) {
+            const c = document.createElement('div');
+            c.className = 'confetti-piece';
+            c.style.left = centerX + 'px';
+            c.style.top = centerY + 'px';
+            c.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            const tx = (Math.random() - 0.5) * 400;
+            const ty = (Math.random() - 0.5) * 400;
+            const rot = Math.random() * 720;
+            c.style.setProperty('--tx', `${tx}px`);
+            c.style.setProperty('--ty', `${ty}px`);
+            c.style.setProperty('--rot', `${rot}deg`);
+            const duration = 0.8 + Math.random() * 0.5;
+            c.style.animationDuration = `${duration}s`;
+            container.appendChild(c);
+            setTimeout(() => c.remove(), duration * 1000);
+        }
+    }
+</script>
+
+</body>
+</html>
